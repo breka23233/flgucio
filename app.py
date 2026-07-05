@@ -10,7 +10,7 @@ import time
 
 # ========== KONFIGURACJA ==========
 # ⚠️ WPISZ TU SWÓJ NOWY KLUCZ OPENROUTER (ten z Notatnika):
-OPENROUTER_KEY = "wpisz-tutaj-swoj-nowy-klucz"
+OPENROUTER_KEY = "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"
 
 st.set_page_config(
     page_title="🎬 Shorts Generator",
