@@ -1,0 +1,13 @@
+streamlit
+groq
+edge-tts
+diffusers
+transformers
+torch
+torchvision
+accelerate
+huggingface-hub
+pillow
+opencv-python-headless
+moviepy
+requests
