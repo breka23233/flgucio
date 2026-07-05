@@ -1,18 +1,18 @@
+
 import streamlit as st
 import os
 import asyncio
 import edge_tts
 import requests
 from PIL import Image, ImageDraw
-import imageio
-import numpy as np
-from PIL import Image
-import subprocess
 import tempfile
 import time
+import imageio
+import numpy as np
+import subprocess
 
 # ========== KONFIGURACJA ==========
-# ⚠️ WPISZ TU SWÓJ NOWY KLUCZ OPENROUTER (ten z Notatnika):
+# ⚠️ WPISZ TU SWÓJ KLUCZ OPENROUTER:
 OPENROUTER_KEY = "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"
 
 st.set_page_config(
@@ -133,12 +133,6 @@ def generate_image(prompt, scene_number):
         
         d.rectangle([40, 40, 1040, 1880], outline='#667eea', width=3)
         
-        try:
-            from PIL import ImageFont
-            font = ImageFont.load_default()
-        except:
-            font = None
-        
         scene_text = f"SCENA {scene_number}"
         d.text((540, 300), scene_text, fill='white', anchor="mt")
         
@@ -163,49 +157,52 @@ def generate_image(prompt, scene_number):
         return img_path
 
 def create_video(scenes_texts, image_paths, audio_path, output_path):
-    """Łączy obrazki i audio w film"""
+    """Łączy obrazki i audio w film (bez moviepy)"""
     try:
-        clip_duration = 4
-        video_clips = []
-        
+        images = []
         for img_path in image_paths:
             if os.path.exists(img_path):
-                clip = mp.ImageClip(img_path, duration=clip_duration)
-                video_clips.append(clip)
+                img = Image.open(img_path)
+                img = img.resize((1080, 1920))
+                images.append(np.array(img))
         
-        if not video_clips:
+        if not images:
             return False
         
-        final_video = mp.concatenate_videoclips(video_clips, method="compose")
+        # Każdy obrazek 4 sekundy (24 fps = 96 klatek na obrazek)
+        fps = 24
+        frames_per_image = 4 * fps
         
-        if os.path.exists(audio_path):
-            audio = mp.AudioFileClip(audio_path)
-            if audio.duration > final_video.duration:
-                final_video = final_video.set_duration(audio.duration)
-            elif audio.duration < final_video.duration:
-                final_video = final_video.subclip(0, audio.duration)
-            final_video = final_video.set_audio(audio)
+        video_frames = []
+        for img in images:
+            for _ in range(frames_per_image):
+                video_frames.append(img)
         
-        final_video = final_video.resize(height=1920)
-        final_video = final_video.crop(x_center=final_video.w/2, y_center=final_video.h/2, width=1080, height=1920)
+        # Zapisujemy wideo bez dźwięku
+        temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+        imageio.mimsave(temp_video, video_frames, fps=fps, codec='libx264')
         
-        final_video.write_videofile(
-            output_path,
-            fps=24,
-            codec='libx264',
-            audio_codec='aac',
-            threads=2,
-            verbose=False,
-            logger=None
-        )
-        
-        for clip in video_clips:
-            clip.close()
-        final_video.close()
-        
-        return True
+        # Dodajemy dźwięk jeśli jest
+        if os.path.exists(audio_path) and os.path.getsize(audio_path) > 0:
+            subprocess.run([
+                'ffmpeg', '-y',
+                '-i', temp_video,
+                '-i', audio_path,
+                '-c:v', 'copy',
+                '-c:a', 'aac',
+                '-map', '0:v:0',
+                '-map', '1:a:0',
+                '-shortest',
+                output_path
+            ], capture_output=True)
+            os.unlink(temp_video)
+            return True
+        else:
+            os.rename(temp_video, output_path)
+            return True
         
     except Exception as e:
+        st.error(f"Błąd montażu: {str(e)[:100]}")
         return False
 
 # ========== INTERFEJS ==========
