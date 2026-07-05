@@ -1,13 +1,7 @@
 streamlit
-groq
 edge-tts
-diffusers
-transformers
-torch
-torchvision
-accelerate
-huggingface-hub
+requests
 pillow
 opencv-python-headless
-moviepy
-requests
+imageio[ffmpeg]
+numpy
