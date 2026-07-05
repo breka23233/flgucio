@@ -4,7 +4,10 @@ import asyncio
 import edge_tts
 import requests
 from PIL import Image, ImageDraw
-import moviepy.editor as mp
+import imageio
+import numpy as np
+from PIL import Image
+import subprocess
 import tempfile
 import time
 
